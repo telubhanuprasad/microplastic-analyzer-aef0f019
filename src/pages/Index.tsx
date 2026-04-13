@@ -91,7 +91,15 @@ export default function Index() {
             {modelStatus === "error" && (
               <>
                 <AlertTriangle className="w-3.5 h-3.5 text-warning" />
-                <span className="text-warning">Model not found — place best.onnx in /public</span>
+                <span className="text-warning" title={modelError}>
+                  Model failed to load
+                </span>
+                <button
+                  onClick={tryLoadModel}
+                  className="ml-2 text-primary underline hover:text-primary/80 transition-colors"
+                >
+                  Retry
+                </button>
               </>
             )}
           </div>
