@@ -27,19 +27,18 @@ const CLASS_NAMES = [
 const MODEL_INPUT_SIZE = 640;
 const CONFIDENCE_THRESHOLD = 0.25;
 const IOU_THRESHOLD = 0.45;
+const ORT_WEB_VERSION = "1.24.3";
 
 let session: ort.InferenceSession | null = null;
 
 export async function loadModel(modelPath = "/best.onnx"): Promise<void> {
-  // First verify the file is accessible and is actually a binary model
-  const resp = await fetch(modelPath);
+  const resp = await fetch(modelPath, { cache: "no-store" });
   if (!resp.ok) {
     throw new Error(`Failed to fetch model: HTTP ${resp.status} — ensure best.onnx is in the public/ folder`);
   }
-  const contentType = resp.headers.get("content-type") || "";
+
   const buffer = await resp.arrayBuffer();
-  
-  // Check if we got a Git LFS pointer or HTML error page instead of the actual model
+
   if (buffer.byteLength < 1000) {
     const text = new TextDecoder().decode(buffer.slice(0, 200));
     if (text.includes("git-lfs") || text.includes("<!DOCTYPE") || text.includes("<html")) {
@@ -47,7 +46,7 @@ export async function loadModel(modelPath = "/best.onnx"): Promise<void> {
     }
   }
 
-  ort.env.wasm.wasmPaths = "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.21.0/dist/";
+  ort.env.wasm.wasmPaths = `https://cdn.jsdelivr.net/npm/onnxruntime-web@${ORT_WEB_VERSION}/dist/`;
   session = await ort.InferenceSession.create(buffer, {
     executionProviders: ["wasm"],
   });
