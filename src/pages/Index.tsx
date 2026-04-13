@@ -8,6 +8,7 @@ import { loadModel, runInference, isModelLoaded, type Detection } from "@/lib/in
 
 export default function Index() {
   const [modelStatus, setModelStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const [modelError, setModelError] = useState<string>("");
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [detections, setDetections] = useState<Detection[]>([]);
   const [analyzing, setAnalyzing] = useState(false);
@@ -15,13 +16,22 @@ export default function Index() {
   const processingCanvasRef = useRef<HTMLCanvasElement>(null);
   const imgRef = useRef<HTMLImageElement | null>(null);
 
-  // Try to load model on mount
-  useEffect(() => {
+  const tryLoadModel = useCallback(async () => {
     setModelStatus("loading");
-    loadModel("/best.onnx")
-      .then(() => setModelStatus("ready"))
-      .catch(() => setModelStatus("error"));
+    setModelError("");
+    try {
+      await loadModel("/best.onnx");
+      setModelStatus("ready");
+    } catch (err: any) {
+      console.error("Model load error:", err);
+      setModelError(err?.message || String(err));
+      setModelStatus("error");
+    }
   }, []);
+
+  useEffect(() => {
+    tryLoadModel();
+  }, [tryLoadModel]);
 
   const handleImageSelect = useCallback(async (file: File) => {
     const url = URL.createObjectURL(file);
@@ -81,7 +91,15 @@ export default function Index() {
             {modelStatus === "error" && (
               <>
                 <AlertTriangle className="w-3.5 h-3.5 text-warning" />
-                <span className="text-warning">Model not found — place best.onnx in /public</span>
+                <span className="text-warning" title={modelError}>
+                  Model failed to load
+                </span>
+                <button
+                  onClick={tryLoadModel}
+                  className="ml-2 text-primary underline hover:text-primary/80 transition-colors"
+                >
+                  Retry
+                </button>
               </>
             )}
           </div>

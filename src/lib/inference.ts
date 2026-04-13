@@ -31,8 +31,24 @@ const IOU_THRESHOLD = 0.45;
 let session: ort.InferenceSession | null = null;
 
 export async function loadModel(modelPath = "/best.onnx"): Promise<void> {
+  // First verify the file is accessible and is actually a binary model
+  const resp = await fetch(modelPath);
+  if (!resp.ok) {
+    throw new Error(`Failed to fetch model: HTTP ${resp.status} — ensure best.onnx is in the public/ folder`);
+  }
+  const contentType = resp.headers.get("content-type") || "";
+  const buffer = await resp.arrayBuffer();
+  
+  // Check if we got a Git LFS pointer or HTML error page instead of the actual model
+  if (buffer.byteLength < 1000) {
+    const text = new TextDecoder().decode(buffer.slice(0, 200));
+    if (text.includes("git-lfs") || text.includes("<!DOCTYPE") || text.includes("<html")) {
+      throw new Error("Got a Git LFS pointer or HTML page instead of the model binary. Please place the actual .onnx file in public/");
+    }
+  }
+
   ort.env.wasm.wasmPaths = "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.21.0/dist/";
-  session = await ort.InferenceSession.create(modelPath, {
+  session = await ort.InferenceSession.create(buffer, {
     executionProviders: ["wasm"],
   });
 }
