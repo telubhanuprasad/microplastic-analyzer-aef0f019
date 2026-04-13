@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { forwardRef, useEffect, useRef } from "react";
 import type { Detection } from "@/lib/inference";
 
 interface DetectionCanvasProps {
@@ -12,18 +12,20 @@ const COLORS = [
   "#8b5cf6", "#ec4899", "#14b8a6", "#f97316",
 ];
 
-export function DetectionCanvas({ imageSrc, detections, highlightedId }: DetectionCanvasProps) {
+export const DetectionCanvas = forwardRef<HTMLDivElement, DetectionCanvasProps>(function DetectionCanvas(
+  { imageSrc, detections, highlightedId },
+  ref,
+) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const imgRef = useRef<HTMLImageElement | null>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext("2d")!;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
 
     const img = new Image();
     img.onload = () => {
-      imgRef.current = img;
       canvas.width = img.naturalWidth;
       canvas.height = img.naturalHeight;
       draw(ctx, img, detections, highlightedId ?? null);
@@ -32,7 +34,7 @@ export function DetectionCanvas({ imageSrc, detections, highlightedId }: Detecti
   }, [imageSrc, detections, highlightedId]);
 
   return (
-    <div className="relative w-full rounded-lg overflow-hidden border border-border bg-card">
+    <div ref={ref} className="relative w-full rounded-lg overflow-hidden border border-border bg-card">
       <canvas ref={canvasRef} className="w-full h-auto" />
       {detections.length > 0 && (
         <div className="absolute top-3 left-3 bg-card/80 backdrop-blur-sm px-3 py-1.5 rounded-md border border-border">
@@ -41,7 +43,7 @@ export function DetectionCanvas({ imageSrc, detections, highlightedId }: Detecti
       )}
     </div>
   );
-}
+});
 
 function draw(
   ctx: CanvasRenderingContext2D,
